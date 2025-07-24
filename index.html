@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IA Detector - YOLO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* === CABEÇALHO === */
+        .header {
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #000;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #000;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        /* === CONTAINER PRINCIPAL - DESKTOP === */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            padding: 20px;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* === SEÇÃO DA CÂMERA === */
+        .camera-section {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 3px solid #00ff88;
+            box-shadow: 0 10px 30px rgba(0,255,136,0.2);
+        }
+
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            min-height: 400px;
+            transform: scaleX(-1); /* Espelhar câmera */
+        }
+
+        .detection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            transform: scaleX(-1); /* Espelhar detecções também */
+        }
+
+        .camera-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .camera-btn {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .camera-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+            transform: scale(1.1);
+        }
+
+        .camera-btn.active {
+            background: #00ff88;
+            color: #000;
+        }
+
+        /* === PAINEL DE CONTROLE === */
+        .control-panel {
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #00ff88;
+            backdrop-filter: blur(10px);
+            height: fit-content;
+        }
+
+        .panel-title {
+            color: #00ff88;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* === BOTÕES === */
+        .ai-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .ai-btn {
+            background: linear-gradient(45deg, #00ff88, #00cc66);
+            border: none;
+            padding: 18px 25px;
+            border-radius: 12px;
+            color: #000;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 20px rgba(0,255,136,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,255,136,0.6);
+        }
+
+        .ai-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .ai-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .ai-btn.danger {
+            background: linear-gradient(45deg, #ff4444, #cc3333);
+        }
+
+        .ai-btn.warning {
+            background: linear-gradient(45deg, #ffaa00, #cc8800);
+        }
+
+        /* === SEÇÃO DE STATUS === */
+        .status-section {
+            background: rgba(0,255,136,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #00ff88;
+        }
+
+        .status-title {
+            color: #00ff88;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,255,136,0.2);
+        }
+
+        .status-label {
+            color: #ccc;
+            font-weight: 600;
+        }
+
+        .status-value {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* === LISTA DE OBJETOS === */
+        .objects-section {
+            background: rgba(0,255,136,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #00ff88;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .objects-title {
+            color: #00ff88;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .object-item {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .object-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .pessoa { border-left-color: #ff4444; }
+        .veiculo { border-left-color: #ff8800; }
+        .animal { border-left-color: #ff00ff; }
+        .objeto { border-left-color: #00aaff; }
+        .eletronico { border-left-color: #ffff00; }
+
+        .confidence-bar {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ffaa00, #00ff88);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .no-objects {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 30px;
+            font-size: 16px;
+        }
+
+        /* === TELA DE CARREGAMENTO === */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            text-align: center;
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            color: #000;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,255,136,0.3);
+        }
+
+        .loading-spinner {
+            border: 6px solid #333;
+            border-top: 6px solid #000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 25px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: 900;
+        }
+
+        .loading p {
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        /* === LAYOUT MOBILE === */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .header p {
+                font-size: 1em;
+            }
+
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            /* CÂMERA EM PRIMEIRO NO MOBILE */
+            .camera-section {
+                order: 1; /* Câmera primeiro */
+                min-height: 60vh; /* Mais espaço para câmera */
+                max-height: 70vh;
+            }
+
+            .control-panel {
+                order: 2; /* Controles depois */
+                padding: 20px;
+            }
+
+            .panel-title {
+                font-size: 20px;
+                margin-bottom: 20px;
+            }
+
+            .ai-controls {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .ai-btn {
+                flex: 1;
+                min-width: 120px;
+                padding: 15px 20px;
+                font-size: 14px;
+            }
+
+            .status-section, .objects-section {
+                margin-bottom: 20px;
+            }
+
+            .objects-section {
+                max-height: 200px;
+            }
+
+            .camera-controls {
+                top: 10px;
+                right: 10px;
+            }
+
+            .camera-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .ai-controls {
+                flex-direction: column;
+            }
+
+            .ai-btn {
+                width: 100%;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .main-container {
+                padding: 10px;
+            }
+
+            .control-panel {
+                padding: 15px;
+            }
+
+            .camera-section {
+                min-height: 50vh;
+            }
+        }
+
+        /* === ANIMAÇÕES === */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 6px 20px rgba(0,255,136,0.4);
+            }
+            50% {
+                box-shadow: 0 6px 20px rgba(0,255,136,0.8);
+            }
+            100% {
+                box-shadow: 0 6px 20px rgba(0,255,136,0.4);
+            }
+        }
+
+        .detecting {
+            background: linear-gradient(45deg, #ffaa00, #ff8800) !important;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* === BARRA DE ROLAGEM === */
+        .objects-section::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .objects-section::-webkit-scrollbar-track {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        .objects-section::-webkit-scrollbar-thumb {
+            background: #00ff88;
+            border-radius: 4px;
+        }
+
+        .objects-section::-webkit-scrollbar-thumb:hover {
+            background: #00cc66;
+        }
+
+        /* === TOOLTIP === */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 DETECTOR DE IA</h1>
+        <p>Inteligência Artificial para Detecção de Objetos em Tempo Real</p>
+    </div>
+
+    <div class="main-container">
+        <!-- Seção da Câmera -->
+        <div class="camera-section">
+            <video id="videoElement" autoplay muted playsinline></video>
+            <canvas id="detectionCanvas" class="detection-overlay"></canvas>
+            
+            <!-- Controles da Câmera -->
+            <div class="camera-controls">
+                <div class="tooltip">
+                    <button id="flipBtn" class="camera-btn" title="Trocar Câmera">
+                        🔄
+                    </button>
+                    <span class="tooltiptext">Trocar Câmera</span>
+                </div>
+                <div class="tooltip">
+                    <button id="mirrorBtn" class="camera-btn active" title="Espelhar Imagem">
+                        🪞
+                    </button>
+                    <span class="tooltiptext">Espelhar</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Painel de Controle -->
+        <div class="control-panel">
+            <div class="panel-title">🎛️ Controles da IA</div>
+            
+            <!-- Botões de Controle -->
+            <div class="ai-controls">
+                <button id="startBtn" class="ai-btn pulse">
+                    📹 INICIAR CÂMERA
+                </button>
+                <button id="detectBtn" class="ai-btn" disabled>
+                    🧠 ATIVAR IA
+                </button>
+                <button id="stopBtn" class="ai-btn danger" disabled>
+                    ⏹️ PARAR TUDO
+                </button>
+            </div>
+
+            <!-- Status da IA -->
+            <div class="status-section">
+                <div class="status-title">📊 Status da IA</div>
+                <div class="status-item">
+                    <span class="status-label">Estado:</span>
+                    <span class="status-value" id="modelStatus">Carregando...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Quadros/seg:</span>
+                    <span class="status-value" id="fpsCounter">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Objetos:</span>
+                    <span class="status-value" id="totalObjects">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Pessoas:</span>
+                    <span class="status-value" id="peopleCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Veículos:</span>
+                    <span class="status-value" id="vehicleCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Animais:</span>
+                    <span class="status-value" id="animalCount">0</span>
+                </div>
+            </div>
+
+            <!-- Lista de Objetos Detectados -->
+            <div class="objects-section">
+                <div class="objects-title">🎯 Detecções da IA</div>
+                <div id="objectsList">
+                    <div class="no-objects">🔍 Aguardando detecções...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Carregamento -->
+    <div id="loadingScreen" class="loading">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>🧠 CARREGANDO IA</h2>
+            <p>Inicializando modelo YOLO...</p>
+        </div>
+    </div>
+
+    <script>
+        class DetectorIA {
+            constructor() {
+                this.video = document.getElementById('videoElement');
+                this.detectionCanvas = document.getElementById('detectionCanvas');
+                this.detectionCtx = this.detectionCanvas.getContext('2d');
+                
+                this.model = null;
+                this.isDetecting = false;
+                this.lastFrameTime = 0;
+                this.fps = 0;
+                this.detectedObjects = [];
+                this.currentCamera = 'user'; // 'user' para frontal, 'environment' para traseira
+                this.isMirrored = true;
+                
+                // Tradução completa dos objetos COCO para português brasileiro
+                this.translations = {
+                    'person': 'pessoa',
+                    'bicycle': 'bicicleta',
+                    'car': 'carro',
+                    'motorcycle': 'motocicleta',
+                    'airplane': 'avião',
+                    'bus': 'ônibus',
+                    'train': 'trem',
+                    'truck': 'caminhão',
+                    'boat': 'barco',
+                    'traffic light': 'semáforo',
+                    'fire hydrant': 'hidrante',
+                    'stop sign': 'placa de pare',
+                    'parking meter': 'parquímetro',
+                    'bench': 'banco',
+                    'bird': 'pássaro',
+                    'cat': 'gato',
+                    'dog': 'cachorro',
+                    'horse': 'cavalo',
+                    'sheep': 'ovelha',
+                    'cow': 'vaca',
+                    'elephant': 'elefante',
+                    'bear': 'urso',
+                    'zebra': 'zebra',
+                    'giraffe': 'girafa',
+                    'backpack': 'mochila',
+                    'umbrella': 'guarda-chuva',
+                    'handbag': 'bolsa',
+                    'tie': 'gravata',
+                    'suitcase': 'mala',
+                    'frisbee': 'frisbee',
+                    'skis': 'esquis',
+                    'snowboard': 'snowboard',
+                    'sports ball': 'bola',
+                    'kite': 'pipa',
+                    'baseball bat': 'taco de baseball',
+                    'baseball glove': 'luva de baseball',
+                    'skateboard': 'skate',
+                    'surfboard': 'prancha de surf',
+                    'tennis racket': 'raquete de tênis',
+                    'bottle': 'garrafa',
+                    'wine glass': 'taça de vinho',
+                    'cup': 'xícara',
+                    'fork': 'garfo',
+                    'knife': 'faca',
+                    'spoon': 'colher',
+                    'bowl': 'tigela',
+                    'banana': 'banana',
+                    'apple': 'maçã',
+                    'sandwich': 'sanduíche',
+                    'orange': 'laranja',
+                    'broccoli': 'brócolis',
+                    'carrot': 'cenoura',
+                    'hot dog': 'cachorro-quente',
+                    'pizza': 'pizza',
+                    'donut': 'rosquinha',
+                    'cake': 'bolo',
+                    'chair': 'cadeira',
+                    'couch': 'sofá',
+                    'potted plant': 'vaso de planta',
+                    'bed': 'cama',
+                    'dining table': 'mesa de jantar',
+                    'toilet': 'vaso sanitário',
+                    'tv': 'televisão',
+                    'laptop': 'notebook',
+                    'mouse': 'mouse',
+                    'remote': 'controle remoto',
+                    'keyboard': 'teclado',
+                    'cell phone': 'celular',
+                    'microwave': 'micro-ondas',
+                    'oven': 'forno',
+                    'toaster': 'torradeira',
+                    'sink': 'pia',
+                    'refrigerator': 'geladeira',
+                    'book': 'livro',
+                    'clock': 'relógio',
+                    'vase': 'vaso',
+                    'scissors': 'tesoura',
+                    'teddy bear': 'ursinho de pelúcia',
+                    'hair drier': 'secador de cabelo',
+                    'toothbrush': 'escova de dente'
+                };
+                
+                // Categorias em português brasileiro
+                this.categories = {
+                    pessoas: ['person'],
+                    veiculos: ['bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat'],
+                    animais: ['bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'],
+                    eletronicos: ['tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster'],
+                    objetos: []
+                };
+                
+                this.initializeIA();
+                this.setupEventListeners();
+            }
+
+            async initializeIA() {
+                try {
+                    document.getElementById('modelStatus').textContent = 'Carregando...';
+                    console.log('🧠 Carregando modelo de IA...');
+                    
+                    this.model = await cocoSsd.load({
+                        base: 'mobilenet_v2'
+                    });
+                    
+                    document.getElementById('modelStatus').textContent = 'IA Pronta';
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    
+                    console.log('✅ IA carregada com sucesso!');
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao carregar IA:', error);
+                    document.getElementById('modelStatus').textContent = 'Erro na IA';
+                    document.getElementById('loadingScreen').innerHTML = `
+                        <div class="loading-content">
+                            <h2 style="color: #ff4444;">❌ ERRO NA IA</h2>
+                            <p>Não foi possível carregar o modelo</p>
+                            <button onclick="location.reload()" class="ai-btn" style="margin-top: 20px;">
+                                🔄 TENTAR NOVAMENTE
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+
+            setupEventListeners() {
+                document.getElementById('startBtn').addEventListener('click', () => this.startCamera());
+                document.getElementById('detectBtn').addEventListener('click', () => this.toggleDetection());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stop());
+                document.getElementById('flipBtn').addEventListener('click', () => this.flipCamera());
+                document.getElementById('mirrorBtn').addEventListener('click', () => this.toggleMirror());
+            }
+
+            async startCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            width: { ideal: 1280 }, 
+                            height: { ideal: 720 },
+                            facingMode: this.currentCamera
+                        }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('startBtn').classList.remove('pulse');
+                    document.getElementById('detectBtn').disabled = false;
+                    document.getElementById('detectBtn').classList.add('pulse');
+                    document.getElementById('stopBtn').disabled = false;
+                    
+                    document.getElementById('modelStatus').textContent = 'Câmera Ativa';
+                    
+                    this.video.onloadedmetadata = () => {
+                        this.detectionCanvas.width = this.video.videoWidth;
+                        this.detectionCanvas.height = this.video.videoHeight;
+                        console.log('📹 Câmera iniciada:', this.video.videoWidth, 'x', this.video.videoHeight);
+                    };
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao acessar câmera:', error);
+                    alert('❌ Erro ao acessar a câmera. Verifique as permissões.');
+                }
+            }
+
+            async flipCamera() {
+                if (!this.video.srcObject) {
+                    alert('⚠️ Inicie a câmera primeiro!');
+                    return;
+                }
+
+                // Alternar entre câmera frontal e traseira
+                this.currentCamera = this.currentCamera === 'user' ? 'environment' : 'user';
+                
+                // Parar stream atual
+                this.video.srcObject.getTracks().forEach(track => track.stop());
+                
+                // Iniciar nova câmera
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            width: { ideal: 1280 }, 
+                            height: { ideal: 720 },
+                            facingMode: this.currentCamera
+                        }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    
+                    // Atualizar visual do botão
+                    const flipBtn = document.getElementById('flipBtn');
+                    flipBtn.style.background = 'rgba(0, 255, 136, 0.3)';
+                    setTimeout(() => {
+                        flipBtn.style.background = 'rgba(0, 0, 0, 0.7)';
+                    }, 300);
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao trocar câmera:', error);
+                    alert('❌ Não foi possível trocar a câmera.');
+                    // Voltar para câmera anterior
+                    this.currentCamera = this.currentCamera === 'user' ? 'environment' : 'user';
+                }
+            }
+
+            toggleMirror() {
+                this.isMirrored = !this.isMirrored;
+                
+                const mirrorBtn = document.getElementById('mirrorBtn');
+                
+                if (this.isMirrored) {
+                    this.video.style.transform = 'scaleX(-1)';
+                    this.detectionCanvas.style.transform = 'scaleX(-1)';
+                    mirrorBtn.classList.add('active');
+                } else {
+                    this.video.style.transform = 'scaleX(1)';
+                    this.detectionCanvas.style.transform = 'scaleX(1)';
+                    mirrorBtn.classList.remove('active');
+                }
+            }
+
+            toggleDetection() {
+                if (!this.model) {
+                    alert('⚠️ IA ainda não carregou. Aguarde...');
+                    return;
+                }
+                
+                this.isDetecting = !this.isDetecting;
+                
+                if (this.isDetecting) {
+                    document.getElementById('detectBtn').textContent = '⏸️ PAUSAR IA';
+                    document.getElementById('detectBtn').classList.remove('pulse');
+                    document.getElementById('detectBtn').classList.add('detecting');
+                    document.getElementById('modelStatus').textContent = 'IA Detectando';
+                    this.startDetectionLoop();
+                } else {
+                    document.getElementById('detectBtn').textContent = '🧠 ATIVAR IA';
+                    document.getElementById('detectBtn').classList.remove('detecting');
+                    document.getElementById('detectBtn').classList.add('pulse');
+                    document.getElementById('modelStatus').textContent = 'IA Pausada';
+                }
+            }
+
+            async startDetectionLoop() {
+                if (!this.isDetecting || !this.model || !this.video.videoWidth) return;
+                
+                try {
+                    const predictions = await this.model.detect(this.video);
+                    
+                    this.processDetections(predictions);
+                    this.drawDetections(predictions);
+                    this.updateStatistics();
+                    this.calculateFPS();
+                    
+                } catch (error) {
+                    console.error('❌ Erro na detecção:', error);
+                }
+                
+                if (this.isDetecting) {
+                    requestAnimationFrame(() => this.startDetectionLoop());
+                }
+            }
+
+            processDetections(predictions) {
+                this.detectedObjects = predictions
+                    .filter(pred => pred.score >= 0.5)
+                    .map(pred => ({
+                        ...pred,
+                        translatedClass: this.translations[pred.class] || pred.class,
+                        category: this.getCategory(pred.class)
+                    }));
+            }
+
+            getCategory(objectClass) {
+                for (const [category, classes] of Object.entries(this.categories)) {
+                    if (classes.includes(objectClass)) {
+                        return category;
+                    }
+                }
+                return 'objetos';
+            }
+
+            drawDetections(predictions) {
+                this.detectionCtx.clearRect(0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
+                
+                predictions.forEach(prediction => {
+                    if (prediction.score >= 0.5) {
+                        const bbox = prediction.bbox;
+                        const translatedName = this.translations[prediction.class] || prediction.class;
+                        const category = this.getCategory(prediction.class);
+                        
+                        // Cores por categoria
+                        let color;
+                        switch (category) {
+                            case 'pessoas': color = '#ff4444'; break;
+                            case 'veiculos': color = '#ff8800'; break;
+                            case 'animais': color = '#ff00ff'; break;
+                            case 'eletronicos': color = '#ffff00'; break;
+                            default: color = '#00aaff';
+                        }
+                        
+                        // Desenhar bounding box
+                        this.detectionCtx.strokeStyle = color;
+                        this.detectionCtx.lineWidth = 3;
+                        this.detectionCtx.strokeRect(bbox[0], bbox[1], bbox[2], bbox[3]);
+                        
+                        // Preparar rótulo
+                        const confidence = Math.round(prediction.score * 100);
+                        const label = `${translatedName} (${confidence}%)`;
+                        
+                        // Configurar fonte
+                        this.detectionCtx.font = 'bold 18px Arial';
+                        const textMetrics = this.detectionCtx.measureText(label);
+                        const textWidth = textMetrics.width;
+                        const textHeight = 24;
+                        
+                        // Fundo do texto
+                        this.detectionCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                        this.detectionCtx.fillRect(
+                            bbox[0], 
+                            bbox[1] - textHeight - 5, 
+                            textWidth + 15, 
+                            textHeight + 5
+                        );
+                        
+                        // Texto
+                        this.detectionCtx.fillStyle = color;
+                        this.detectionCtx.fillText(label, bbox[0] + 8, bbox[1] - 8);
+                        
+                        // Ponto central
+                        const centerX = bbox[0] + bbox[2] / 2;
+                        const centerY = bbox[1] + bbox[3] / 2;
+                        
+                        this.detectionCtx.fillStyle = color;
+                        this.detectionCtx.beginPath();
+                        this.detectionCtx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
+                        this.detectionCtx.fill();
+                    }
+                });
+            }
+
+            updateStatistics() {
+                // Contar por categoria
+                const counts = {
+                    total: this.detectedObjects.length,
+                    pessoas: 0,
+                    veiculos: 0,
+                    animais: 0,
+                    eletronicos: 0,
+                    objetos: 0
+                };
+                
+                this.detectedObjects.forEach(obj => {
+                    counts[obj.category]++;
+                });
+                
+                // Atualizar interface
+                document.getElementById('totalObjects').textContent = counts.total;
+                document.getElementById('peopleCount').textContent = counts.pessoas;
+                document.getElementById('vehicleCount').textContent = counts.veiculos;
+                document.getElementById('animalCount').textContent = counts.animais;
+                
+                // Lista de objetos
+                this.updateObjectsList();
+            }
+
+            updateObjectsList() {
+                const listElement = document.getElementById('objectsList');
+                
+                if (this.detectedObjects.length === 0) {
+                    listElement.innerHTML = '<div class="no-objects">🔍 Nenhum objeto detectado</div>';
+                    return;
+                }
+                
+                let html = '';
+                this.detectedObjects
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 6)
+                    .forEach(obj => {
+                        const confidence = Math.round(obj.score * 100);
+                        html += `
+                            <div class="object-item ${obj.category}">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                    <strong>${obj.translatedClass}</strong>
+                                    <span style="font-weight: bold;">${confidence}%</span>
+                                </div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: ${confidence}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                
+                listElement.innerHTML = html;
+            }
+
+            calculateFPS() {
+                const now = performance.now();
+                if (this.lastFrameTime) {
+                    this.fps = Math.round(1000 / (now - this.lastFrameTime));
+                    document.getElementById('fpsCounter').textContent = this.fps;
+                }
+                this.lastFrameTime = now;
+            }
+
+            stop() {
+                this.isDetecting = false;
+                
+                if (this.video.srcObject) {
+                    this.video.srcObject.getTracks().forEach(track => track.stop());
+                    this.video.srcObject = null;
+                }
+                
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('startBtn').classList.add('pulse');
+                document.getElementById('detectBtn').disabled = true;
+                document.getElementById('detectBtn').classList.remove('pulse', 'detecting');
+                document.getElementById('stopBtn').disabled = true;
+                
+                document.getElementById('detectBtn').textContent = '🧠 ATIVAR IA';
+                document.getElementById('modelStatus').textContent = 'IA Parada';
+                
+                // Limpar canvas
+                this.detectionCtx.clearRect(0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
+                
+                // Limpar estatísticas
+                document.getElementById('objectsList').innerHTML = '<div class="no-objects">🔍 Aguardando detecções...</div>';
+                document.getElementById('totalObjects').textContent = '0';
+                document.getElementById('peopleCount').textContent = '0';
+                document.getElementById('vehicleCount').textContent = '0';
+                document.getElementById('animalCount').textContent = '0';
+                document.getElementById('fpsCounter').textContent = '0';
+            }
+        }
+
+        // Inicializar quando a página carregar
+        window.addEventListener('load', () => {
+            new DetectorIA();
+        });
+    </script>
+</body>
+</html>
