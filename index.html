@@ -68,7 +68,7 @@
             height: 100%;
             object-fit: cover;
             min-height: 400px;
-            transform: scaleX(-1); /* Espelhar câmera */
+            transform: scaleX(-1); /* Espelhar apenas o vídeo */
         }
 
         .detection-overlay {
@@ -78,7 +78,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            transform: scaleX(-1); /* Espelhar detecções também */
+            /* NÃO espelhar o canvas - labels ficam corretos */
         }
 
         .camera-controls {
@@ -114,6 +114,14 @@
         .camera-btn.active {
             background: #00ff88;
             color: #000;
+        }
+
+        .camera-btn:disabled {
+            background: rgba(100, 100, 100, 0.5);
+            border-color: #666;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* === PAINEL DE CONTROLE === */
@@ -306,6 +314,7 @@
             padding: 50px;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,255,136,0.3);
+            min-width: 300px;
         }
 
         .loading-spinner {
@@ -325,13 +334,39 @@
 
         .loading h2 {
             font-size: 2em;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-weight: 900;
         }
 
         .loading p {
             font-size: 1.2em;
             font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .loading-steps {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .loading-step {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .loading-step.completed {
+            color: #006600;
+        }
+
+        .loading-step.current {
+            color: #000;
+            font-weight: bold;
+        }
+
+        .loading-step.pending {
+            color: #666;
         }
 
         /* === LAYOUT MOBILE === */
@@ -425,6 +460,11 @@
             .camera-section {
                 min-height: 50vh;
             }
+
+            .loading-content {
+                padding: 30px;
+                margin: 20px;
+            }
         }
 
         /* === ANIMAÇÕES === */
@@ -513,13 +553,13 @@
             <!-- Controles da Câmera -->
             <div class="camera-controls">
                 <div class="tooltip">
-                    <button id="flipBtn" class="camera-btn" title="Trocar Câmera">
+                    <button id="flipBtn" class="camera-btn" title="Trocar Câmera" disabled>
                         🔄
                     </button>
                     <span class="tooltiptext">Trocar Câmera</span>
                 </div>
                 <div class="tooltip">
-                    <button id="mirrorBtn" class="camera-btn active" title="Espelhar Imagem">
+                    <button id="mirrorBtn" class="camera-btn active" title="Espelhar Imagem" disabled>
                         🪞
                     </button>
                     <span class="tooltiptext">Espelhar</span>
@@ -533,11 +573,8 @@
             
             <!-- Botões de Controle -->
             <div class="ai-controls">
-                <button id="startBtn" class="ai-btn pulse">
-                    📹 INICIAR CÂMERA
-                </button>
-                <button id="detectBtn" class="ai-btn" disabled>
-                    🧠 ATIVAR IA
+                <button id="pauseBtn" class="ai-btn warning" disabled>
+                    ⏸️ PAUSAR IA
                 </button>
                 <button id="stopBtn" class="ai-btn danger" disabled>
                     ⏹️ PARAR TUDO
@@ -549,7 +586,7 @@
                 <div class="status-title">📊 Status da IA</div>
                 <div class="status-item">
                     <span class="status-label">Estado:</span>
-                    <span class="status-value" id="modelStatus">Carregando...</span>
+                    <span class="status-value" id="modelStatus">Iniciando...</span>
                 </div>
                 <div class="status-item">
                     <span class="status-label">Quadros/seg:</span>
@@ -577,7 +614,7 @@
             <div class="objects-section">
                 <div class="objects-title">🎯 Detecções da IA</div>
                 <div id="objectsList">
-                    <div class="no-objects">🔍 Aguardando detecções...</div>
+                    <div class="no-objects">🔍 Aguardando inicialização...</div>
                 </div>
             </div>
         </div>
@@ -587,8 +624,23 @@
     <div id="loadingScreen" class="loading">
         <div class="loading-content">
             <div class="loading-spinner"></div>
-            <h2>🧠 CARREGANDO IA</h2>
-            <p>Inicializando modelo YOLO...</p>
+            <h2 id="loadingTitle">🧠 INICIANDO IA</h2>
+            <p id="loadingDescription">Preparando sistema...</p>
+            
+            <div class="loading-steps">
+                <div class="loading-step pending" id="step1">
+                    ⏳ Carregando modelo YOLO...
+                </div>
+                <div class="loading-step pending" id="step2">
+                    ⏳ Iniciando câmera...
+                </div>
+                <div class="loading-step pending" id="step3">
+                    ⏳ Ativando detecção...
+                </div>
+                <div class="loading-step pending" id="step4">
+                    ⏳ Sistema pronto!
+                </div>
+            </div>
         </div>
     </div>
 
@@ -601,6 +653,7 @@
                 
                 this.model = null;
                 this.isDetecting = false;
+                this.isPaused = false;
                 this.lastFrameTime = 0;
                 this.fps = 0;
                 this.detectedObjects = [];
@@ -700,84 +753,155 @@
                     objetos: []
                 };
                 
-                this.initializeIA();
+                // Iniciar automaticamente
+                this.autoInitialize();
                 this.setupEventListeners();
             }
 
-            async initializeIA() {
+            async autoInitialize() {
                 try {
-                    document.getElementById('modelStatus').textContent = 'Carregando...';
-                    console.log('🧠 Carregando modelo de IA...');
+                    // Passo 1: Carregar modelo YOLO
+                    await this.loadModel();
                     
-                    this.model = await cocoSsd.load({
-                        base: 'mobilenet_v2'
-                    });
+                    // Passo 2: Iniciar câmera
+                    await this.initializeCamera();
                     
-                    document.getElementById('modelStatus').textContent = 'IA Pronta';
-                    document.getElementById('loadingScreen').style.display = 'none';
+                    // Passo 3: Ativar detecção
+                    await this.startDetection();
                     
-                    console.log('✅ IA carregada com sucesso!');
+                    // Passo 4: Sistema pronto
+                    this.finishInitialization();
                     
                 } catch (error) {
-                    console.error('❌ Erro ao carregar IA:', error);
-                    document.getElementById('modelStatus').textContent = 'Erro na IA';
-                    document.getElementById('loadingScreen').innerHTML = `
-                        <div class="loading-content">
-                            <h2 style="color: #ff4444;">❌ ERRO NA IA</h2>
-                            <p>Não foi possível carregar o modelo</p>
-                            <button onclick="location.reload()" class="ai-btn" style="margin-top: 20px;">
-                                🔄 TENTAR NOVAMENTE
-                            </button>
-                        </div>
-                    `;
+                    console.error('❌ Erro na inicialização:', error);
+                    this.showError(error);
                 }
             }
 
+            async loadModel() {
+                this.updateLoadingStep(1, 'current');
+                document.getElementById('loadingDescription').textContent = 'Baixando modelo de IA...';
+                
+                this.model = await cocoSsd.load({
+                    base: 'mobilenet_v2'
+                });
+                
+                this.updateLoadingStep(1, 'completed');
+                console.log('✅ Modelo YOLO carregado!');
+                await this.delay(500);
+            }
+
+            async initializeCamera() {
+                this.updateLoadingStep(2, 'current');
+                document.getElementById('loadingDescription').textContent = 'Acessando câmera...';
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { ideal: 1280 }, 
+                        height: { ideal: 720 },
+                        facingMode: this.currentCamera
+                    }
+                });
+                
+                this.video.srcObject = stream;
+                
+                // Aguardar vídeo carregar
+                await new Promise((resolve) => {
+                    this.video.onloadedmetadata = () => {
+                        this.detectionCanvas.width = this.video.videoWidth;
+                        this.detectionCanvas.height = this.video.videoHeight;
+                        resolve();
+                    };
+                });
+                
+                this.updateLoadingStep(2, 'completed');
+                console.log('✅ Câmera iniciada!');
+                await this.delay(500);
+            }
+
+            async startDetection() {
+                this.updateLoadingStep(3, 'current');
+                document.getElementById('loadingDescription').textContent = 'Ativando detecção...';
+                
+                this.isDetecting = true;
+                this.startDetectionLoop();
+                
+                this.updateLoadingStep(3, 'completed');
+                console.log('✅ Detecção ativada!');
+                await this.delay(500);
+            }
+
+            finishInitialization() {
+                this.updateLoadingStep(4, 'completed');
+                document.getElementById('loadingDescription').textContent = 'Sistema pronto para uso!';
+                
+                // Habilitar controles
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('flipBtn').disabled = false;
+                document.getElementById('mirrorBtn').disabled = false;
+                
+                // Atualizar status
+                document.getElementById('modelStatus').textContent = 'IA Ativa';
+                document.getElementById('objectsList').innerHTML = '<div class="no-objects">🔍 Procurando objetos...</div>';
+                
+                // Remover tela de carregamento após 1 segundo
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                }, 1000);
+                
+                console.log('✅ Sistema totalmente inicializado!');
+            }
+
+            updateLoadingStep(stepNumber, status) {
+                const step = document.getElementById(`step${stepNumber}`);
+                step.className = `loading-step ${status}`;
+                
+                if (status === 'completed') {
+                    step.innerHTML = step.innerHTML.replace('⏳', '✅');
+                } else if (status === 'current') {
+                    step.innerHTML = step.innerHTML.replace('⏳', '🔄');
+                }
+            }
+
+            showError(error) {
+                document.getElementById('loadingScreen').innerHTML = `
+                    <div class="loading-content">
+                        <h2 style="color: #ff4444;">❌ ERRO DE INICIALIZAÇÃO</h2>
+                        <p>Não foi possível inicializar o sistema</p>
+                        <p style="font-size: 14px; margin-top: 15px;">${error.message}</p>
+                        <button onclick="location.reload()" class="ai-btn" style="margin-top: 20px;">
+                            🔄 TENTAR NOVAMENTE
+                        </button>
+                    </div>
+                `;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
             setupEventListeners() {
-                document.getElementById('startBtn').addEventListener('click', () => this.startCamera());
-                document.getElementById('detectBtn').addEventListener('click', () => this.toggleDetection());
+                document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
                 document.getElementById('stopBtn').addEventListener('click', () => this.stop());
                 document.getElementById('flipBtn').addEventListener('click', () => this.flipCamera());
                 document.getElementById('mirrorBtn').addEventListener('click', () => this.toggleMirror());
             }
 
-            async startCamera() {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { 
-                            width: { ideal: 1280 }, 
-                            height: { ideal: 720 },
-                            facingMode: this.currentCamera
-                        }
-                    });
-                    
-                    this.video.srcObject = stream;
-                    
-                    document.getElementById('startBtn').disabled = true;
-                    document.getElementById('startBtn').classList.remove('pulse');
-                    document.getElementById('detectBtn').disabled = false;
-                    document.getElementById('detectBtn').classList.add('pulse');
-                    document.getElementById('stopBtn').disabled = false;
-                    
-                    document.getElementById('modelStatus').textContent = 'Câmera Ativa';
-                    
-                    this.video.onloadedmetadata = () => {
-                        this.detectionCanvas.width = this.video.videoWidth;
-                        this.detectionCanvas.height = this.video.videoHeight;
-                        console.log('📹 Câmera iniciada:', this.video.videoWidth, 'x', this.video.videoHeight);
-                    };
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao acessar câmera:', error);
-                    alert('❌ Erro ao acessar a câmera. Verifique as permissões.');
+            togglePause() {
+                this.isPaused = !this.isPaused;
+                
+                if (this.isPaused) {
+                    document.getElementById('pauseBtn').textContent = '▶️ RETOMAR IA';
+                    document.getElementById('modelStatus').textContent = 'IA Pausada';
+                } else {
+                    document.getElementById('pauseBtn').textContent = '⏸️ PAUSAR IA';
+                    document.getElementById('modelStatus').textContent = 'IA Ativa';
                 }
             }
 
             async flipCamera() {
-                if (!this.video.srcObject) {
-                    alert('⚠️ Inicie a câmera primeiro!');
-                    return;
-                }
+                if (!this.video.srcObject) return;
 
                 // Alternar entre câmera frontal e traseira
                 this.currentCamera = this.currentCamera === 'user' ? 'environment' : 'user';
@@ -797,7 +921,7 @@
                     
                     this.video.srcObject = stream;
                     
-                    // Atualizar visual do botão
+                    // Feedback visual
                     const flipBtn = document.getElementById('flipBtn');
                     flipBtn.style.background = 'rgba(0, 255, 136, 0.3)';
                     setTimeout(() => {
@@ -806,7 +930,6 @@
                     
                 } catch (error) {
                     console.error('❌ Erro ao trocar câmera:', error);
-                    alert('❌ Não foi possível trocar a câmera.');
                     // Voltar para câmera anterior
                     this.currentCamera = this.currentCamera === 'user' ? 'environment' : 'user';
                 }
@@ -819,50 +942,28 @@
                 
                 if (this.isMirrored) {
                     this.video.style.transform = 'scaleX(-1)';
-                    this.detectionCanvas.style.transform = 'scaleX(-1)';
                     mirrorBtn.classList.add('active');
                 } else {
                     this.video.style.transform = 'scaleX(1)';
-                    this.detectionCanvas.style.transform = 'scaleX(1)';
                     mirrorBtn.classList.remove('active');
-                }
-            }
-
-            toggleDetection() {
-                if (!this.model) {
-                    alert('⚠️ IA ainda não carregou. Aguarde...');
-                    return;
-                }
-                
-                this.isDetecting = !this.isDetecting;
-                
-                if (this.isDetecting) {
-                    document.getElementById('detectBtn').textContent = '⏸️ PAUSAR IA';
-                    document.getElementById('detectBtn').classList.remove('pulse');
-                    document.getElementById('detectBtn').classList.add('detecting');
-                    document.getElementById('modelStatus').textContent = 'IA Detectando';
-                    this.startDetectionLoop();
-                } else {
-                    document.getElementById('detectBtn').textContent = '🧠 ATIVAR IA';
-                    document.getElementById('detectBtn').classList.remove('detecting');
-                    document.getElementById('detectBtn').classList.add('pulse');
-                    document.getElementById('modelStatus').textContent = 'IA Pausada';
                 }
             }
 
             async startDetectionLoop() {
                 if (!this.isDetecting || !this.model || !this.video.videoWidth) return;
                 
-                try {
-                    const predictions = await this.model.detect(this.video);
-                    
-                    this.processDetections(predictions);
-                    this.drawDetections(predictions);
-                    this.updateStatistics();
-                    this.calculateFPS();
-                    
-                } catch (error) {
-                    console.error('❌ Erro na detecção:', error);
+                if (!this.isPaused) {
+                    try {
+                        const predictions = await this.model.detect(this.video);
+                        
+                        this.processDetections(predictions);
+                        this.drawDetections(predictions);
+                        this.updateStatistics();
+                        this.calculateFPS();
+                        
+                    } catch (error) {
+                        console.error('❌ Erro na detecção:', error);
+                    }
                 }
                 
                 if (this.isDetecting) {
@@ -894,7 +995,18 @@
                 
                 predictions.forEach(prediction => {
                     if (prediction.score >= 0.5) {
-                        const bbox = prediction.bbox;
+                        let bbox = prediction.bbox;
+                        
+                        // Se a câmera está espelhada, ajustar posição dos labels
+                        if (this.isMirrored) {
+                            bbox = [
+                                this.detectionCanvas.width - bbox[0] - bbox[2], // Inverter X
+                                bbox[1], // Y permanece o mesmo
+                                bbox[2], // Largura permanece
+                                bbox[3]  // Altura permanece
+                            ];
+                        }
+                        
                         const translatedName = this.translations[prediction.class] || prediction.class;
                         const category = this.getCategory(prediction.class);
                         
@@ -1014,31 +1126,39 @@
 
             stop() {
                 this.isDetecting = false;
+                this.isPaused = false;
                 
                 if (this.video.srcObject) {
                     this.video.srcObject.getTracks().forEach(track => track.stop());
                     this.video.srcObject = null;
                 }
                 
-                document.getElementById('startBtn').disabled = false;
-                document.getElementById('startBtn').classList.add('pulse');
-                document.getElementById('detectBtn').disabled = true;
-                document.getElementById('detectBtn').classList.remove('pulse', 'detecting');
+                // Desabilitar controles
+                document.getElementById('pauseBtn').disabled = true;
                 document.getElementById('stopBtn').disabled = true;
+                document.getElementById('flipBtn').disabled = true;
+                document.getElementById('mirrorBtn').disabled = true;
                 
-                document.getElementById('detectBtn').textContent = '🧠 ATIVAR IA';
-                document.getElementById('modelStatus').textContent = 'IA Parada';
+                document.getElementById('pauseBtn').textContent = '⏸️ PAUSAR IA';
+                document.getElementById('modelStatus').textContent = 'Sistema Parado';
                 
                 // Limpar canvas
                 this.detectionCtx.clearRect(0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
                 
                 // Limpar estatísticas
-                document.getElementById('objectsList').innerHTML = '<div class="no-objects">🔍 Aguardando detecções...</div>';
+                document.getElementById('objectsList').innerHTML = '<div class="no-objects">🔍 Sistema parado</div>';
                 document.getElementById('totalObjects').textContent = '0';
                 document.getElementById('peopleCount').textContent = '0';
                 document.getElementById('vehicleCount').textContent = '0';
                 document.getElementById('animalCount').textContent = '0';
                 document.getElementById('fpsCounter').textContent = '0';
+                
+                // Mostrar opção de reiniciar
+                setTimeout(() => {
+                    if (confirm('Deseja reiniciar o sistema?')) {
+                        location.reload();
+                    }
+                }, 1000);
             }
         }
 
