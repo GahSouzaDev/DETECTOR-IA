@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Detector - YOLO</title>
+    <title>IA Detector - YOLO com Voz</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
     <style>
@@ -68,7 +68,7 @@
             height: 100%;
             object-fit: cover;
             min-height: 400px;
-            transform: scaleX(-1); /* Espelhar apenas o vídeo */
+            transform: scaleX(-1);
         }
 
         .detection-overlay {
@@ -78,7 +78,6 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            /* NÃO espelhar o canvas - labels ficam corretos */
         }
 
         .camera-controls {
@@ -122,6 +121,28 @@
             color: #666;
             cursor: not-allowed;
             transform: none;
+        }
+
+        /* === INDICADOR DE VOZ === */
+        .voice-indicator {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff4444;
+            color: #ff4444;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+            animation: pulse 1s infinite;
+        }
+
+        .voice-indicator.speaking {
+            display: block;
+            border-color: #00ff88;
+            color: #00ff88;
         }
 
         /* === PAINEL DE CONTROLE === */
@@ -194,6 +215,11 @@
             background: linear-gradient(45deg, #ffaa00, #cc8800);
         }
 
+        .ai-btn.voice-active {
+            background: linear-gradient(45deg, #ff4444, #ff6666);
+            animation: pulse 2s infinite;
+        }
+
         /* === SEÇÃO DE STATUS === */
         .status-section {
             background: rgba(0,255,136,0.1);
@@ -256,11 +282,23 @@
             border-left: 4px solid;
             font-size: 14px;
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .object-item:hover {
             background: rgba(255, 255, 255, 0.2);
             transform: translateX(5px);
+        }
+
+        .object-item.confirmed {
+            border-left-width: 8px;
+            box-shadow: 0 0 10px rgba(0,255,136,0.3);
+        }
+
+        .object-item.speaking {
+            background: rgba(255, 68, 68, 0.2);
+            border-left-color: #ff4444;
+            animation: pulse 1s infinite;
         }
 
         .pessoa { border-left-color: #ff4444; }
@@ -291,55 +329,6 @@
             text-align: center;
             padding: 30px;
             font-size: 16px;
-        }
-
-        /* === CONTROLES DE VOZ === */
-        .voice-controls {
-            background: rgba(0,255,136,0.1);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid #00ff88;
-        }
-
-        .voice-title {
-            color: #00ff88;
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .voice-btn {
-            background: linear-gradient(45deg, #9c27b0, #673ab7);
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .voice-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
-        }
-
-        .voice-btn.active {
-            background: linear-gradient(45deg, #4caf50, #2e7d32);
-        }
-
-        .voice-status {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(0,255,136,0.2);
-            font-size: 14px;
         }
 
         /* === TELA DE CARREGAMENTO === */
@@ -435,15 +424,14 @@
                 padding: 15px;
             }
 
-            /* CÂMERA EM PRIMEIRO NO MOBILE */
             .camera-section {
-                order: 1; /* Câmera primeiro */
-                min-height: 60vh; /* Mais espaço para câmera */
+                order: 1;
+                min-height: 60vh;
                 max-height: 70vh;
             }
 
             .control-panel {
-                order: 2; /* Controles depois */
+                order: 2;
                 padding: 20px;
             }
 
@@ -465,7 +453,7 @@
                 font-size: 14px;
             }
 
-            .status-section, .objects-section, .voice-controls {
+            .status-section, .objects-section {
                 margin-bottom: 20px;
             }
 
@@ -482,6 +470,13 @@
                 width: 40px;
                 height: 40px;
                 font-size: 16px;
+            }
+
+            .voice-indicator {
+                top: 10px;
+                left: 10px;
+                padding: 8px 12px;
+                font-size: 12px;
             }
         }
 
@@ -585,32 +580,12 @@
             visibility: visible;
             opacity: 1;
         }
-
-        /* === INDICADOR DE FALA === */
-        .speaking-indicator {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(156, 39, 176, 0.9);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            display: none;
-            z-index: 10;
-            animation: pulse 1s infinite;
-        }
-
-        .speaking-indicator.active {
-            display: block;
-        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🤖 DETECTOR DE IA</h1>
-        <p>Inteligência Artificial para Detecção de Objetos em Tempo Real com Voz</p>
+        <h1>🤖 DETECTOR DE IA COM VOZ</h1>
+        <p>Inteligência Artificial para Detecção de Objetos com Narração</p>
     </div>
 
     <div class="main-container">
@@ -619,13 +594,19 @@
             <video id="videoElement" autoplay muted playsinline></video>
             <canvas id="detectionCanvas" class="detection-overlay"></canvas>
             
-            <!-- Indicador de Fala -->
-            <div id="speakingIndicator" class="speaking-indicator">
+            <!-- Indicador de Voz -->
+            <div id="voiceIndicator" class="voice-indicator">
                 🔊 Falando...
             </div>
             
             <!-- Controles da Câmera -->
             <div class="camera-controls">
+                <div class="tooltip">
+                    <button id="voiceBtn" class="camera-btn" title="Ativar/Desativar Voz" disabled>
+                        🔊
+                    </button>
+                    <span class="tooltiptext">Voz</span>
+                </div>
                 <div class="tooltip">
                     <button id="flipBtn" class="camera-btn" title="Trocar Câmera" disabled>
                         🔄
@@ -650,25 +631,12 @@
                 <button id="pauseBtn" class="ai-btn warning" disabled>
                     ⏸️ PAUSAR IA
                 </button>
+                <button id="voiceToggleBtn" class="ai-btn" disabled>
+                    🔊 VOZ ATIVA
+                </button>
                 <button id="stopBtn" class="ai-btn danger" disabled>
                     ⏹️ PARAR TUDO
                 </button>
-            </div>
-
-            <!-- Controles de Voz -->
-            <div class="voice-controls">
-                <div class="voice-title">🔊 Controles de Voz</div>
-                <button id="voiceBtn" class="voice-btn active">
-                    🔊 VOZ ATIVADA
-                </button>
-                <div class="voice-status">
-                    <span class="status-label">Status da Voz:</span>
-                    <span class="status-value" id="voiceStatus">Ativa</span>
-                </div>
-                <div class="voice-status">
-                    <span class="status-label">Última Fala:</span>
-                    <span class="status-value" id="lastSpoken">Nenhuma</span>
-                </div>
             </div>
 
             <!-- Status da IA -->
@@ -677,6 +645,10 @@
                 <div class="status-item">
                     <span class="status-label">Estado:</span>
                     <span class="status-value" id="modelStatus">Iniciando...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Voz:</span>
+                    <span class="status-value" id="voiceStatus">Ativa</span>
                 </div>
                 <div class="status-item">
                     <span class="status-label">Quadros/seg:</span>
@@ -750,20 +722,21 @@
                 this.lastFrameTime = 0;
                 this.fps = 0;
                 this.detectedObjects = [];
-                this.currentCamera = 'user'; // 'user' para frontal, 'environment' para traseira
+                this.currentCamera = 'environment'; // Iniciar com câmera traseira
                 this.isMirrored = true;
                 
-                // Sistema de voz
+                // === SISTEMA DE VOZ ===
                 this.speechSynthesis = window.speechSynthesis;
                 this.voiceEnabled = true;
                 this.isSpeaking = false;
                 this.lastSpokenTime = 0;
                 this.speechCooldown = 3000; // 3 segundos entre falas
+                this.selectedVoice = null;
                 
-                // Sistema de contagem de quadros para objetos
-                this.objectFrameCount = new Map(); // Mapeia objeto -> contagem de quadros
-                this.frameThreshold = 5; // Número de quadros necessários para falar
-                this.spokenObjects = new Set(); // Objetos que já foram falados
+                // === CONTROLE DE CONFIRMAÇÃO ===
+                this.objectFrameCount = new Map(); // Rastrear confirmações
+                this.frameThreshold = 5; // 5 quadros seguidos
+                this.spokenObjects = new Set(); // Objetos já falados
                 
                 // Tradução completa dos objetos COCO para português brasileiro
                 this.translations = {
@@ -875,7 +848,7 @@
                     await this.startDetection();
                     
                     // Passo 4: Configurar voz
-                    await this.initializeVoice();
+                    await this.setupVoice();
                     
                     // Passo 5: Sistema pronto
                     this.finishInitialization();
@@ -901,26 +874,50 @@
 
             async initializeCamera() {
                 this.updateLoadingStep(2, 'current');
-                document.getElementById('loadingDescription').textContent = 'Acessando câmera...';
+                document.getElementById('loadingDescription').textContent = 'Acessando câmera traseira...';
                 
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        width: { ideal: 1280 }, 
-                        height: { ideal: 720 },
-                        facingMode: this.currentCamera
-                    }
-                });
-                
-                this.video.srcObject = stream;
-                
-                // Aguardar vídeo carregar
-                await new Promise((resolve) => {
-                    this.video.onloadedmetadata = () => {
-                        this.detectionCanvas.width = this.video.videoWidth;
-                        this.detectionCanvas.height = this.video.videoHeight;
-                        resolve();
-                    };
-                });
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            width: { ideal: 1280 }, 
+                            height: { ideal: 720 },
+                            facingMode: this.currentCamera
+                        }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    
+                    // Aguardar vídeo carregar
+                    await new Promise((resolve) => {
+                        this.video.onloadedmetadata = () => {
+                            this.detectionCanvas.width = this.video.videoWidth;
+                            this.detectionCanvas.height = this.video.videoHeight;
+                            resolve();
+                        };
+                    });
+                    
+                } catch (error) {
+                    console.warn('⚠️ Câmera traseira não disponível, usando frontal...');
+                    this.currentCamera = 'user';
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            width: { ideal: 1280 }, 
+                            height: { ideal: 720 },
+                            facingMode: this.currentCamera
+                        }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    
+                    await new Promise((resolve) => {
+                        this.video.onloadedmetadata = () => {
+                            this.detectionCanvas.width = this.video.videoWidth;
+                            this.detectionCanvas.height = this.video.videoHeight;
+                            resolve();
+                        };
+                    });
+                }
                 
                 this.updateLoadingStep(2, 'completed');
                 console.log('✅ Câmera iniciada!');
@@ -939,18 +936,21 @@
                 await this.delay(500);
             }
 
-            async initializeVoice() {
+            async setupVoice() {
                 this.updateLoadingStep(4, 'current');
-                document.getElementById('loadingDescription').textContent = 'Configurando sistema de voz...';
+                document.getElementById('loadingDescription').textContent = 'Configurando voz...';
                 
-                // Verificar se o navegador suporta Web Speech API
-                if ('speechSynthesis' in window) {
+                // Verificar se Web Speech API está disponível
+                if (!this.speechSynthesis) {
+                    console.warn('⚠️ Web Speech API não disponível');
+                    this.voiceEnabled = false;
+                } else {
                     // Aguardar vozes carregarem
                     await new Promise((resolve) => {
                         const checkVoices = () => {
                             const voices = this.speechSynthesis.getVoices();
                             if (voices.length > 0) {
-                                console.log('✅ Vozes disponíveis:', voices.length);
+                                this.setupVoiceSettings();
                                 resolve();
                             } else {
                                 setTimeout(checkVoices, 100);
@@ -958,14 +958,25 @@
                         };
                         checkVoices();
                     });
-                } else {
-                    console.warn('⚠️ Web Speech API não suportada');
-                    this.voiceEnabled = false;
                 }
                 
                 this.updateLoadingStep(4, 'completed');
-                console.log('✅ Sistema de voz configurado!');
+                console.log('✅ Voz configurada!');
                 await this.delay(500);
+            }
+
+            setupVoiceSettings() {
+                const voices = this.speechSynthesis.getVoices();
+                
+                // Procurar voz em português brasileiro
+                this.selectedVoice = voices.find(voice => 
+                    voice.lang === 'pt-BR' || 
+                    voice.lang === 'pt' || 
+                    voice.name.toLowerCase().includes('portuguese') ||
+                    voice.name.toLowerCase().includes('brasil')
+                ) || voices[0];
+                
+                console.log('🔊 Voz selecionada:', this.selectedVoice?.name || 'Padrão');
             }
 
             finishInitialization() {
@@ -974,17 +985,23 @@
                 
                 // Habilitar controles
                 document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('voiceToggleBtn').disabled = false;
                 document.getElementById('stopBtn').disabled = false;
                 document.getElementById('flipBtn').disabled = false;
                 document.getElementById('mirrorBtn').disabled = false;
+                document.getElementById('voiceBtn').disabled = false;
+                document.getElementById('voiceBtn').classList.add('active');
                 
                 // Atualizar status
                 document.getElementById('modelStatus').textContent = 'IA Ativa';
+                document.getElementById('voiceStatus').textContent = 'Ativa';
                 document.getElementById('objectsList').innerHTML = '<div class="no-objects">🔍 Procurando objetos...</div>';
                 
                 // Remover tela de carregamento após 1 segundo
                 setTimeout(() => {
                     document.getElementById('loadingScreen').style.display = 'none';
+                    // Fala de boas-vindas
+                    this.speak('Sistema de detecção ativado');
                 }, 1000);
                 
                 console.log('✅ Sistema totalmente inicializado!');
@@ -992,12 +1009,14 @@
 
             updateLoadingStep(stepNumber, status) {
                 const step = document.getElementById(`step${stepNumber}`);
-                step.className = `loading-step ${status}`;
-                
-                if (status === 'completed') {
-                    step.innerHTML = step.innerHTML.replace('⏳', '✅');
-                } else if (status === 'current') {
-                    step.innerHTML = step.innerHTML.replace('⏳', '🔄');
+                if (step) {
+                    step.className = `loading-step ${status}`;
+                    
+                    if (status === 'completed') {
+                        step.innerHTML = step.innerHTML.replace('⏳', '✅');
+                    } else if (status === 'current') {
+                        step.innerHTML = step.innerHTML.replace('⏳', '🔄');
+                    }
                 }
             }
 
@@ -1020,10 +1039,84 @@
 
             setupEventListeners() {
                 document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
+                document.getElementById('voiceToggleBtn').addEventListener('click', () => this.toggleVoice());
                 document.getElementById('stopBtn').addEventListener('click', () => this.stop());
                 document.getElementById('flipBtn').addEventListener('click', () => this.flipCamera());
                 document.getElementById('mirrorBtn').addEventListener('click', () => this.toggleMirror());
                 document.getElementById('voiceBtn').addEventListener('click', () => this.toggleVoice());
+            }
+
+            // === SISTEMA DE VOZ ===
+            speak(text) {
+                if (!this.voiceEnabled || this.isSpeaking) {
+                    return;
+                }
+                
+                // Verificar intervalo mínimo entre falas
+                const now = Date.now();
+                if (now - this.lastSpokenTime < this.speechCooldown) {
+                    return;
+                }
+                
+                this.isSpeaking = true;
+                this.lastSpokenTime = now;
+                
+                // Mostrar indicador visual
+                document.getElementById('voiceIndicator').classList.add('speaking');
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                if (this.selectedVoice) {
+                    utterance.voice = this.selectedVoice;
+                }
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                utterance.volume = 0.8;
+                utterance.lang = 'pt-BR';
+                
+                utterance.onstart = () => {
+                    console.log('🔊 Falando:', text);
+                };
+                
+                utterance.onend = () => {
+                    this.isSpeaking = false;
+                    document.getElementById('voiceIndicator').classList.remove('speaking');
+                    console.log('✅ Fala concluída');
+                };
+                
+                utterance.onerror = (event) => {
+                    console.error('❌ Erro na fala:', event.error);
+                    this.isSpeaking = false;
+                    document.getElementById('voiceIndicator').classList.remove('speaking');
+                };
+                
+                this.speechSynthesis.speak(utterance);
+            }
+
+            toggleVoice() {
+                this.voiceEnabled = !this.voiceEnabled;
+                
+                const voiceBtn = document.getElementById('voiceBtn');
+                const voiceToggleBtn = document.getElementById('voiceToggleBtn');
+                
+                if (this.voiceEnabled) {
+                    voiceBtn.classList.add('active');
+                    voiceToggleBtn.textContent = '🔊 VOZ ATIVA';
+                    voiceToggleBtn.classList.remove('voice-active');
+                    document.getElementById('voiceStatus').textContent = 'Ativa';
+                    this.speak('Voz ativada');
+                } else {
+                    voiceBtn.classList.remove('active');
+                    voiceToggleBtn.textContent = '🔇 VOZ DESATIVADA';
+                    voiceToggleBtn.classList.add('voice-active');
+                    document.getElementById('voiceStatus').textContent = 'Desativada';
+                    
+                    // Parar fala atual
+                    if (this.isSpeaking) {
+                        this.speechSynthesis.cancel();
+                        this.isSpeaking = false;
+                        document.getElementById('voiceIndicator').classList.remove('speaking');
+                    }
+                }
             }
 
             togglePause() {
@@ -1032,44 +1125,29 @@
                 if (this.isPaused) {
                     document.getElementById('pauseBtn').textContent = '▶️ RETOMAR IA';
                     document.getElementById('modelStatus').textContent = 'IA Pausada';
+                    // Parar fala atual
+                    if (this.isSpeaking) {
+                        this.speechSynthesis.cancel();
+                        this.isSpeaking = false;
+                        document.getElementById('voiceIndicator').classList.remove('speaking');
+                    }
                 } else {
                     document.getElementById('pauseBtn').textContent = '⏸️ PAUSAR IA';
                     document.getElementById('modelStatus').textContent = 'IA Ativa';
                 }
             }
 
-            toggleVoice() {
-                this.voiceEnabled = !this.voiceEnabled;
-                
-                const voiceBtn = document.getElementById('voiceBtn');
-                const voiceStatus = document.getElementById('voiceStatus');
-                
-                if (this.voiceEnabled) {
-                    voiceBtn.textContent = '🔊 VOZ ATIVADA';
-                    voiceBtn.classList.add('active');
-                    voiceStatus.textContent = 'Ativa';
-                } else {
-                    voiceBtn.textContent = '🔇 VOZ DESATIVADA';
-                    voiceBtn.classList.remove('active');
-                    voiceStatus.textContent = 'Desativada';
-                    
-                    // Parar qualquer fala em andamento
-                    this.speechSynthesis.cancel();
-                    this.isSpeaking = false;
-                    document.getElementById('speakingIndicator').classList.remove('active');
-                }
-            }
-
             async flipCamera() {
                 if (!this.video.srcObject) return;
 
-                // Alternar entre câmera frontal e traseira
                 this.currentCamera = this.currentCamera === 'user' ? 'environment' : 'user';
                 
-                // Parar stream atual
                 this.video.srcObject.getTracks().forEach(track => track.stop());
                 
-                // Iniciar nova câmera
+                // Limpar contadores ao trocar câmera
+                this.objectFrameCount.clear();
+                this.spokenObjects.clear();
+                
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
                         video: { 
@@ -1087,11 +1165,6 @@
                         this.detectionCanvas.height = this.video.videoHeight;
                     };
                     
-                    // Limpar contadores de objetos ao trocar câmera
-                    this.objectFrameCount.clear();
-                    this.spokenObjects.clear();
-                    
-                    // Feedback visual
                     const flipBtn = document.getElementById('flipBtn');
                     flipBtn.style.background = 'rgba(0, 255, 136, 0.3)';
                     setTimeout(() => {
@@ -1100,7 +1173,6 @@
                     
                 } catch (error) {
                     console.error('❌ Erro ao trocar câmera:', error);
-                    // Voltar para câmera anterior
                     this.currentCamera = this.currentCamera === 'user' ? 'environment' : 'user';
                 }
             }
@@ -1120,7 +1192,12 @@
             }
 
             async startDetectionLoop() {
-                if (!this.isDetecting || !this.model || !this.video.videoWidth) return;
+                if (!this.isDetecting || !this.model || !this.video.videoWidth) {
+                    if (this.isDetecting) {
+                        requestAnimationFrame(() => this.startDetectionLoop());
+                    }
+                    return;
+                }
                 
                 if (!this.isPaused) {
                     try {
@@ -1195,56 +1272,12 @@
                 for (const [objectKey, count] of this.objectFrameCount.entries()) {
                     if (count >= this.frameThreshold && !this.spokenObjects.has(objectKey)) {
                         const translatedName = this.translations[objectKey] || objectKey;
-                        this.speakDetection(translatedName);
+                        const message = `Tem ${translatedName} na suafrente`;
+                        this.speak(message);
                         this.spokenObjects.add(objectKey);
                         break; // Falar apenas um objeto por vez
                     }
                 }
-            }
-
-            speakDetection(objectName) {
-                if (!this.voiceEnabled || this.isSpeaking) return;
-                
-                const message = `Tem ${objectName} na sua frente`;
-                
-                const utterance = new SpeechSynthesisUtterance(message);
-                utterance.lang = 'pt-BR';
-                utterance.rate = 1.0;
-                utterance.pitch = 1.0;
-                utterance.volume = 1.0;
-                
-                // Tentar usar voz em português
-                const voices = this.speechSynthesis.getVoices();
-                const portugueseVoice = voices.find(voice => 
-                    voice.lang.includes('pt') || voice.lang.includes('PT')
-                );
-                if (portugueseVoice) {
-                    utterance.voice = portugueseVoice;
-                }
-                
-                utterance.onstart = () => {
-                    this.isSpeaking = true;
-                    document.getElementById('speakingIndicator').classList.add('active');
-                    console.log(`🔊 Falando: ${message}`);
-                };
-                
-                utterance.onend = () => {
-                    this.isSpeaking = false;
-                    document.getElementById('speakingIndicator').classList.remove('active');
-                    this.lastSpokenTime = Date.now();
-                };
-                
-                utterance.onerror = (event) => {
-                    console.error('❌ Erro na síntese de voz:', event);
-                    this.isSpeaking = false;
-                    document.getElementById('speakingIndicator').classList.remove('active');
-                };
-                
-                // Atualizar interface
-                document.getElementById('lastSpoken').textContent = objectName;
-                
-                // Falar
-                this.speechSynthesis.speak(utterance);
             }
 
             getCategory(objectClass) {
@@ -1269,8 +1302,8 @@
                                 this.detectionCanvas.width - bbox[0] - bbox[2], // Inverter X
                                 bbox[1], // Y permanece o mesmo
                                 bbox[2], // Largura permanece
-                                bbox[3]  // Altura
-                                                            ];
+                                bbox[3]  // Altura permanece
+                            ];
                         }
                         
                         const translatedName = this.translations[prediction.class] || prediction.class;
@@ -1417,7 +1450,7 @@
                 // Parar qualquer fala em andamento
                 this.speechSynthesis.cancel();
                 this.isSpeaking = false;
-                document.getElementById('speakingIndicator').classList.remove('active');
+                document.getElementById('voiceIndicator').classList.remove('speaking');
                 
                 if (this.video.srcObject) {
                     this.video.srcObject.getTracks().forEach(track => track.stop());
@@ -1430,14 +1463,15 @@
                 
                 // Desabilitar controles
                 document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('voiceToggleBtn').disabled = true;
                 document.getElementById('stopBtn').disabled = true;
                 document.getElementById('flipBtn').disabled = true;
                 document.getElementById('mirrorBtn').disabled = true;
+                document.getElementById('voiceBtn').disabled = true;
                 
                 document.getElementById('pauseBtn').textContent = '⏸️ PAUSAR IA';
                 document.getElementById('modelStatus').textContent = 'Sistema Parado';
                 document.getElementById('voiceStatus').textContent = 'Parada';
-                document.getElementById('lastSpoken').textContent = 'Nenhuma';
                 
                 // Limpar canvas
                 this.detectionCtx.clearRect(0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
