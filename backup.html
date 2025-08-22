@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Detector - YOLO com Voz (Otimizado)</title>
+    <title>IA Detector - YOLO com Voz</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
     <style>
@@ -24,50 +24,50 @@
         /* === CABEÇALHO === */
         .header {
             background: linear-gradient(90deg, #00ff88, #00cc66);
-            padding: 15px 20px;
+            padding: 20px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,255,136,0.3);
+            box-shadow: 0 4px 20px rgba(0,255,136,0.3);
         }
 
         .header h1 {
-            font-size: 2.2em;
+            font-size: 2.5em;
             color: #000;
             font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 2px;
             margin-bottom: 5px;
         }
 
         .header p {
             color: #000;
-            font-size: 1em;
+            font-size: 1.1em;
             font-weight: 600;
         }
 
         /* === CONTAINER PRINCIPAL - DESKTOP === */
         .main-container {
             display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 15px;
-            padding: 15px;
-            min-height: calc(100vh - 100px);
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            padding: 20px;
+            min-height: calc(100vh - 120px);
         }
 
         /* === SEÇÃO DA CÂMERA === */
         .camera-section {
             position: relative;
             background: #000;
-            border-radius: 12px;
+            border-radius: 15px;
             overflow: hidden;
-            border: 2px solid #00ff88;
-            box-shadow: 0 8px 20px rgba(0,255,136,0.2);
+            border: 3px solid #00ff88;
+            box-shadow: 0 10px 30px rgba(0,255,136,0.2);
         }
 
         #videoElement {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            min-height: 380px;
+            min-height: 400px;
             transform: scaleX(-1);
         }
 
@@ -82,10 +82,10 @@
 
         .camera-controls {
             position: absolute;
-            top: 12px;
-            right: 12px;
+            top: 15px;
+            right: 15px;
             display: flex;
-            gap: 8px;
+            gap: 10px;
             z-index: 10;
         }
 
@@ -93,21 +93,21 @@
             background: rgba(0, 0, 0, 0.7);
             border: 2px solid #00ff88;
             color: #00ff88;
-            padding: 8px;
+            padding: 10px;
             border-radius: 50%;
             cursor: pointer;
-            transition: all 0.2s ease;
-            width: 40px;
-            height: 40px;
+            transition: all 0.3s ease;
+            width: 45px;
+            height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 18px;
         }
 
         .camera-btn:hover {
             background: rgba(0, 255, 136, 0.2);
-            transform: scale(1.05);
+            transform: scale(1.1);
         }
 
         .camera-btn.active {
@@ -126,17 +126,16 @@
         /* === INDICADOR DE VOZ === */
         .voice-indicator {
             position: absolute;
-            top: 12px;
-            left: 12px;
+            top: 15px;
+            left: 15px;
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #ff4444;
             color: #ff4444;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 13px;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 14px;
             font-weight: bold;
             display: none;
-            z-index: 10;
             animation: pulse 1s infinite;
         }
 
@@ -149,8 +148,8 @@
         /* === PAINEL DE CONTROLE === */
         .control-panel {
             background: rgba(0, 0, 0, 0.9);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 15px;
+            padding: 25px;
             border: 2px solid #00ff88;
             backdrop-filter: blur(10px);
             height: fit-content;
@@ -158,42 +157,42 @@
 
         .panel-title {
             color: #00ff88;
-            font-size: 20px;
+            font-size: 24px;
             font-weight: bold;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
         }
 
         /* === BOTÕES === */
         .ai-controls {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-bottom: 25px;
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
         .ai-btn {
             background: linear-gradient(45deg, #00ff88, #00cc66);
             border: none;
-            padding: 15px 20px;
-            border-radius: 10px;
+            padding: 18px 25px;
+            border-radius: 12px;
             color: #000;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 900;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(0,255,136,0.4);
+            letter-spacing: 1px;
+            box-shadow: 0 6px 20px rgba(0,255,136,0.4);
             position: relative;
             overflow: hidden;
         }
 
         .ai-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,255,136,0.6);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,255,136,0.6);
         }
 
         .ai-btn:active {
@@ -224,77 +223,76 @@
         /* === SEÇÃO DE STATUS === */
         .status-section {
             background: rgba(0,255,136,0.1);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
             border: 1px solid #00ff88;
         }
 
         .status-title {
             color: #00ff88;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             text-align: center;
         }
 
         .status-item {
             display: flex;
             justify-content: space-between;
-            margin: 8px 0;
-            padding: 6px 0;
+            margin: 10px 0;
+            padding: 8px 0;
             border-bottom: 1px solid rgba(0,255,136,0.2);
         }
 
         .status-label {
             color: #ccc;
             font-weight: 600;
-            font-size: 14px;
         }
 
         .status-value {
             color: #00ff88;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         /* === LISTA DE OBJETOS === */
         .objects-section {
             background: rgba(0,255,136,0.1);
-            border-radius: 8px;
-            padding: 15px;
+            border-radius: 10px;
+            padding: 20px;
             border: 1px solid #00ff88;
-            max-height: 280px;
+            max-height: 300px;
             overflow-y: auto;
         }
 
         .objects-title {
             color: #00ff88;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             text-align: center;
         }
 
         .object-item {
             background: rgba(255, 255, 255, 0.1);
-            margin: 6px 0;
-            padding: 10px;
-            border-radius: 6px;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 8px;
             border-left: 4px solid;
-            font-size: 13px;
-            transition: all 0.2s ease;
+            font-size: 14px;
+            transition: all 0.3s ease;
             position: relative;
         }
 
         .object-item:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateX(3px);
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
         }
 
         .object-item.confirmed {
-            border-left-width: 6px;
-            box-shadow: 0 0 8px rgba(0,255,136,0.3);
+            border-left-width: 8px;
+            box-shadow: 0 0 10px rgba(0,255,136,0.3);
         }
 
         .object-item.speaking {
@@ -311,10 +309,10 @@
 
         .confidence-bar {
             width: 100%;
-            height: 5px;
+            height: 6px;
             background: #333;
             border-radius: 3px;
-            margin-top: 6px;
+            margin-top: 8px;
             overflow: hidden;
         }
 
@@ -322,15 +320,15 @@
             height: 100%;
             background: linear-gradient(90deg, #ff4444, #ffaa00, #00ff88);
             border-radius: 3px;
-            transition: width 0.3s ease;
+            transition: width 0.5s ease;
         }
 
         .no-objects {
             color: #666;
             font-style: italic;
             text-align: center;
-            padding: 20px;
-            font-size: 14px;
+            padding: 30px;
+            font-size: 16px;
         }
 
         /* === TELA DE CARREGAMENTO === */
@@ -351,21 +349,20 @@
             text-align: center;
             background: linear-gradient(135deg, #00ff88, #00cc66);
             color: #000;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 15px 30px rgba(0,255,136,0.3);
-            min-width: 280px;
-            max-width: 90%;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,255,136,0.3);
+            min-width: 300px;
         }
 
         .loading-spinner {
-            border: 5px solid #333;
-            border-top: 5px solid #000;
+            border: 6px solid #333;
+            border-top: 6px solid #000;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 0 auto 25px;
         }
 
         @keyframes spin {
@@ -374,27 +371,27 @@
         }
 
         .loading h2 {
-            font-size: 1.8em;
-            margin-bottom: 12px;
+            font-size: 2em;
+            margin-bottom: 15px;
             font-weight: 900;
         }
 
         .loading p {
-            font-size: 1.1em;
+            font-size: 1.2em;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .loading-steps {
-            margin-top: 15px;
+            margin-top: 20px;
             text-align: left;
         }
 
         .loading-step {
             display: flex;
             align-items: center;
-            margin: 6px 0;
-            font-size: 13px;
+            margin: 8px 0;
+            font-size: 14px;
         }
 
         .loading-step.completed {
@@ -413,73 +410,73 @@
         /* === LAYOUT MOBILE === */
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 1.6em;
+                font-size: 1.8em;
             }
 
             .header p {
-                font-size: 0.9em;
+                font-size: 1em;
             }
 
             .main-container {
                 grid-template-columns: 1fr;
                 grid-template-rows: auto auto;
-                gap: 12px;
-                padding: 12px;
+                gap: 15px;
+                padding: 15px;
             }
 
             .camera-section {
                 order: 1;
-                min-height: 50vh;
-                max-height: 60vh;
+                min-height: 60vh;
+                max-height: 70vh;
             }
 
             .control-panel {
                 order: 2;
-                padding: 15px;
+                padding: 20px;
             }
 
             .panel-title {
-                font-size: 18px;
-                margin-bottom: 15px;
+                font-size: 20px;
+                margin-bottom: 20px;
             }
 
             .ai-controls {
                 flex-direction: row;
                 flex-wrap: wrap;
-                gap: 8px;
+                gap: 10px;
             }
 
             .ai-btn {
                 flex: 1;
-                min-width: 110px;
-                padding: 12px 15px;
-                font-size: 13px;
-            }
-
-            .status-section, .objects-section {
-                margin-bottom: 15px;
-            }
-
-            .objects-section {
-                max-height: 180px;
-            }
-
-            .camera-controls {
-                top: 8px;
-                right: 8px;
-            }
-
-            .camera-btn {
-                width: 36px;
-                height: 36px;
+                min-width: 120px;
+                padding: 15px 20px;
                 font-size: 14px;
             }
 
+            .status-section, .objects-section {
+                margin-bottom: 20px;
+            }
+
+            .objects-section {
+                max-height: 200px;
+            }
+
+            .camera-controls {
+                top: 10px;
+                right: 10px;
+            }
+
+            .camera-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
             .voice-indicator {
-                top: 8px;
-                left: 8px;
-                padding: 6px 10px;
-                font-size: 11px;
+                top: 10px;
+                left: 10px;
+                padding: 8px 12px;
+                font-size: 12px;
             }
         }
 
@@ -493,24 +490,24 @@
             }
 
             .header {
-                padding: 12px;
+                padding: 15px;
             }
 
             .main-container {
-                padding: 8px;
+                padding: 10px;
             }
 
             .control-panel {
-                padding: 12px;
+                padding: 15px;
             }
 
             .camera-section {
-                min-height: 45vh;
+                min-height: 50vh;
             }
 
             .loading-content {
-                padding: 20px;
-                margin: 15px;
+                padding: 30px;
+                margin: 20px;
             }
         }
 
@@ -521,13 +518,13 @@
 
         @keyframes pulse {
             0% {
-                box-shadow: 0 4px 15px rgba(0,255,136,0.4);
+                box-shadow: 0 6px 20px rgba(0,255,136,0.4);
             }
             50% {
-                box-shadow: 0 4px 15px rgba(0,255,136,0.8);
+                box-shadow: 0 6px 20px rgba(0,255,136,0.8);
             }
             100% {
-                box-shadow: 0 4px 15px rgba(0,255,136,0.4);
+                box-shadow: 0 6px 20px rgba(0,255,136,0.4);
             }
         }
 
@@ -538,17 +535,17 @@
 
         /* === BARRA DE ROLAGEM === */
         .objects-section::-webkit-scrollbar {
-            width: 6px;
+            width: 8px;
         }
 
         .objects-section::-webkit-scrollbar-track {
             background: #333;
-            border-radius: 3px;
+            border-radius: 4px;
         }
 
         .objects-section::-webkit-scrollbar-thumb {
             background: #00ff88;
-            border-radius: 3px;
+            border-radius: 4px;
         }
 
         .objects-section::-webkit-scrollbar-thumb:hover {
@@ -563,35 +560,25 @@
 
         .tooltip .tooltiptext {
             visibility: hidden;
-            width: 100px;
+            width: 120px;
             background-color: #000;
             color: #fff;
             text-align: center;
-            border-radius: 4px;
-            padding: 4px;
+            border-radius: 6px;
+            padding: 5px;
             position: absolute;
             z-index: 1;
             bottom: 125%;
             left: 50%;
-            margin-left: -50px;
+            margin-left: -60px;
             opacity: 0;
-            transition: opacity 0.2s;
-            font-size: 11px;
+            transition: opacity 0.3s;
+            font-size: 12px;
         }
 
         .tooltip:hover .tooltiptext {
             visibility: visible;
             opacity: 1;
-        }
-
-        /* === NOVOS ESTILOS PARA OTIMIZAÇÃO === */
-        .performance-mode {
-            opacity: 0.9;
-            filter: brightness(0.95);
-        }
-
-        .low-power-mode {
-            filter: contrast(1.1) brightness(1.05);
         }
     </style>
 </head>
@@ -632,12 +619,6 @@
                     </button>
                     <span class="tooltiptext">Espelhar</span>
                 </div>
-                <div class="tooltip">
-                    <button id="performanceBtn" class="camera-btn" title="Modo Performance" disabled>
-                        ⚡
-                    </button>
-                    <span class="tooltiptext">Performance</span>
-                </div>
             </div>
         </div>
 
@@ -672,10 +653,6 @@
                 <div class="status-item">
                     <span class="status-label">Quadros/seg:</span>
                     <span class="status-value" id="fpsCounter">0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Modo:</span>
-                    <span class="status-value" id="performanceMode">Normal</span>
                 </div>
                 <div class="status-item">
                     <span class="status-label">Objetos:</span>
@@ -744,27 +721,22 @@
                 this.isPaused = false;
                 this.lastFrameTime = 0;
                 this.fps = 0;
-                this.targetFps = 15;
-                this.frameInterval = 1000 / this.targetFps;
                 this.detectedObjects = [];
-                this.currentCamera = 'environment';
+                this.currentCamera = 'environment'; // Iniciar com câmera traseira
                 this.isMirrored = true;
-                this.performanceMode = 'normal';
                 
                 // === SISTEMA DE VOZ ===
                 this.speechSynthesis = window.speechSynthesis;
                 this.voiceEnabled = true;
                 this.isSpeaking = false;
                 this.lastSpokenTime = 0;
-                this.speechCooldown = 3000;
+                this.speechCooldown = 3000; // 3 segundos entre falas
                 this.selectedVoice = null;
-                this.speechQueue = [];
-                this.maxQueueSize = 5;
                 
                 // === CONTROLE DE CONFIRMAÇÃO ===
-                this.objectFrameCount = new Map();
-                this.frameThreshold = 5;
-                this.spokenObjects = new Set();
+                this.objectFrameCount = new Map(); // Rastrear confirmações
+                this.frameThreshold = 5; // 5 quadros seguidos
+                this.spokenObjects = new Set(); // Objetos já falados
                 
                 // Tradução completa dos objetos COCO para português brasileiro
                 this.translations = {
@@ -891,17 +863,13 @@
                 this.updateLoadingStep(1, 'current');
                 document.getElementById('loadingDescription').textContent = 'Baixando modelo de IA...';
                 
-                // Carregar apenas o modelo necessário para dispositivos móveis
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                const modelBase = isMobile ? 'mobilenet_v2' : 'lite_mobilenet_v2';
-                
                 this.model = await cocoSsd.load({
-                    base: modelBase
+                    base: 'mobilenet_v2'
                 });
                 
                 this.updateLoadingStep(1, 'completed');
                 console.log('✅ Modelo YOLO carregado!');
-                await this.delay(400);
+                await this.delay(500);
             }
 
             async initializeCamera() {
@@ -909,15 +877,10 @@
                 document.getElementById('loadingDescription').textContent = 'Acessando câmera traseira...';
                 
                 try {
-                    // Ajustar resolução baseado no dispositivo
-                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    const resolution = isMobile ? 
-                        { width: { ideal: 640 }, height: { ideal: 480 } } : 
-                        { width: { ideal: 1280 }, height: { ideal: 720 } };
-                    
                     const stream = await navigator.mediaDevices.getUserMedia({
                         video: { 
-                            ...resolution,
+                            width: { ideal: 1280 }, 
+                            height: { ideal: 720 },
                             facingMode: this.currentCamera
                         }
                     });
@@ -939,8 +902,8 @@
                     
                     const stream = await navigator.mediaDevices.getUserMedia({
                         video: { 
-                            width: { ideal: 640 }, 
-                            height: { ideal: 480 },
+                            width: { ideal: 1280 }, 
+                            height: { ideal: 720 },
                             facingMode: this.currentCamera
                         }
                     });
@@ -958,7 +921,7 @@
                 
                 this.updateLoadingStep(2, 'completed');
                 console.log('✅ Câmera iniciada!');
-                await this.delay(400);
+                await this.delay(500);
             }
 
             async startDetection() {
@@ -970,7 +933,7 @@
                 
                 this.updateLoadingStep(3, 'completed');
                 console.log('✅ Detecção ativada!');
-                await this.delay(400);
+                await this.delay(500);
             }
 
             async setupVoice() {
@@ -999,7 +962,7 @@
                 
                 this.updateLoadingStep(4, 'completed');
                 console.log('✅ Voz configurada!');
-                await this.delay(400);
+                await this.delay(500);
             }
 
             setupVoiceSettings() {
@@ -1027,13 +990,11 @@
                 document.getElementById('flipBtn').disabled = false;
                 document.getElementById('mirrorBtn').disabled = false;
                 document.getElementById('voiceBtn').disabled = false;
-                document.getElementById('performanceBtn').disabled = false;
                 document.getElementById('voiceBtn').classList.add('active');
                 
                 // Atualizar status
                 document.getElementById('modelStatus').textContent = 'IA Ativa';
                 document.getElementById('voiceStatus').textContent = 'Ativa';
-                document.getElementById('performanceMode').textContent = 'Normal';
                 document.getElementById('objectsList').innerHTML = '<div class="no-objects">🔍 Procurando objetos...</div>';
                 
                 // Remover tela de carregamento após 1 segundo
@@ -1041,7 +1002,7 @@
                     document.getElementById('loadingScreen').style.display = 'none';
                     // Fala de boas-vindas
                     this.speak('Sistema de detecção ativado');
-                }, 800);
+                }, 1000);
                 
                 console.log('✅ Sistema totalmente inicializado!');
             }
@@ -1083,60 +1044,11 @@
                 document.getElementById('flipBtn').addEventListener('click', () => this.flipCamera());
                 document.getElementById('mirrorBtn').addEventListener('click', () => this.toggleMirror());
                 document.getElementById('voiceBtn').addEventListener('click', () => this.toggleVoice());
-                document.getElementById('performanceBtn').addEventListener('click', () => this.togglePerformanceMode());
-            }
-
-            togglePerformanceMode() {
-                const modes = ['normal', 'balanced', 'low-power'];
-                const modeNames = ['Normal', 'Balanceado', 'Baixo Consumo'];
-                const modeIcons = ['⚡', '🔋', '💡'];
-                
-                const currentIndex = modes.indexOf(this.performanceMode);
-                const nextIndex = (currentIndex + 1) % modes.length;
-                this.performanceMode = modes[nextIndex];
-                
-                const performanceBtn = document.getElementById('performanceBtn');
-                const performanceModeElement = document.getElementById('performanceMode');
-                
-                performanceModeElement.textContent = modeNames[nextIndex];
-                performanceBtn.textContent = modeIcons[nextIndex];
-                
-                // Ajustar configurações baseadas no modo
-                switch (this.performanceMode) {
-                    case 'normal':
-                        this.targetFps = 15;
-                        this.frameThreshold = 5;
-                        this.speechCooldown = 3000;
-                        document.body.classList.remove('performance-mode', 'low-power-mode');
-                        break;
-                    case 'balanced':
-                        this.targetFps = 10;
-                        this.frameThreshold = 7;
-                        this.speechCooldown = 4000;
-                        document.body.classList.add('performance-mode');
-                        document.body.classList.remove('low-power-mode');
-                        break;
-                    case 'low-power':
-                        this.targetFps = 5;
-                        this.frameThreshold = 10;
-                        this.speechCooldown = 6000;
-                        document.body.classList.remove('performance-mode');
-                        document.body.classList.add('low-power-mode');
-                        break;
-                }
-                
-                this.frameInterval = 1000 / this.targetFps;
-                this.speak(`Modo ${modeNames[nextIndex]} ativado`);
             }
 
             // === SISTEMA DE VOZ ===
-            speak(text, priority = 0) {
+            speak(text) {
                 if (!this.voiceEnabled || this.isSpeaking) {
-                    // Adicionar à fila se não for possível falar agora
-                    if (this.speechQueue.length < this.maxQueueSize) {
-                        this.speechQueue.push({ text, priority });
-                        this.speechQueue.sort((a, b) => b.priority - a.priority); // Ordenar por prioridade
-                    }
                     return;
                 }
                 
@@ -1168,13 +1080,6 @@
                 utterance.onend = () => {
                     this.isSpeaking = false;
                     document.getElementById('voiceIndicator').classList.remove('speaking');
-                    
-                    // Processar próxima mensagem na fila
-                    if (this.speechQueue.length > 0) {
-                        const nextMessage = this.speechQueue.shift();
-                        setTimeout(() => this.speak(nextMessage.text, nextMessage.priority), 300);
-                    }
-                    
                     console.log('✅ Fala concluída');
                 };
                 
@@ -1182,12 +1087,6 @@
                     console.error('❌ Erro na fala:', event.error);
                     this.isSpeaking = false;
                     document.getElementById('voiceIndicator').classList.remove('speaking');
-                    
-                    // Tentar próxima mensagem na fila mesmo com erro
-                    if (this.speechQueue.length > 0) {
-                        const nextMessage = this.speechQueue.shift();
-                        setTimeout(() => this.speak(nextMessage.text, nextMessage.priority), 300);
-                    }
                 };
                 
                 this.speechSynthesis.speak(utterance);
@@ -1204,15 +1103,12 @@
                     voiceToggleBtn.textContent = '🔊 VOZ ATIVA';
                     voiceToggleBtn.classList.remove('voice-active');
                     document.getElementById('voiceStatus').textContent = 'Ativa';
-                    this.speak('Voz ativada', 10);
+                    this.speak('Voz ativada');
                 } else {
                     voiceBtn.classList.remove('active');
                     voiceToggleBtn.textContent = '🔇 VOZ DESATIVADA';
                     voiceToggleBtn.classList.add('voice-active');
                     document.getElementById('voiceStatus').textContent = 'Desativada';
-                    
-                    // Limpar fila de mensagens
-                    this.speechQueue = [];
                     
                     // Parar fala atual
                     if (this.isSpeaking) {
@@ -1251,17 +1147,12 @@
                 // Limpar contadores ao trocar câmera
                 this.objectFrameCount.clear();
                 this.spokenObjects.clear();
-                this.speechQueue = [];
                 
                 try {
-                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    const resolution = isMobile ? 
-                        { width: { ideal: 640 }, height: { ideal: 480 } } : 
-                        { width: { ideal: 1280 }, height: { ideal: 720 } };
-                    
                     const stream = await navigator.mediaDevices.getUserMedia({
                         video: { 
-                            ...resolution,
+                            width: { ideal: 1280 }, 
+                            height: { ideal: 720 },
                             facingMode: this.currentCamera
                         }
                     });
@@ -1308,10 +1199,7 @@
                     return;
                 }
                 
-                const now = Date.now();
-                const elapsed = now - this.lastFrameTime;
-                
-                if (!this.isPaused && elapsed > this.frameInterval) {
+                if (!this.isPaused) {
                     try {
                         const predictions = await this.model.detect(this.video);
                         
@@ -1325,8 +1213,6 @@
                     } catch (error) {
                         console.error('❌ Erro na detecção:', error);
                     }
-                    
-                    this.lastFrameTime = now - (elapsed % this.frameInterval);
                 }
                 
                 if (this.isDetecting) {
@@ -1386,8 +1272,8 @@
                 for (const [objectKey, count] of this.objectFrameCount.entries()) {
                     if (count >= this.frameThreshold && !this.spokenObjects.has(objectKey)) {
                         const translatedName = this.translations[objectKey] || objectKey;
-                        const message = `Tem ${translatedName} na sua frente`;
-                        this.speak(message, 5);
+                        const message = `Tem ${translatedName} na suafrente`;
+                        this.speak(message);
                         this.spokenObjects.add(objectKey);
                         break; // Falar apenas um objeto por vez
                     }
@@ -1404,17 +1290,10 @@
             }
 
             drawDetections(predictions) {
-                // Limpar apenas a área necessária (otimização)
                 this.detectionCtx.clearRect(0, 0, this.detectionCanvas.width, this.detectionCanvas.height);
                 
-                // Limitar o número de detecções a serem desenhadas
-                const maxDetections = this.performanceMode === 'low-power' ? 3 : 
-                                    this.performanceMode === 'balanced' ? 5 : 8;
-                
-                predictions
-                    .filter(prediction => prediction.score >= 0.5)
-                    .slice(0, maxDetections)
-                    .forEach(prediction => {
+                predictions.forEach(prediction => {
+                    if (prediction.score >= 0.5) {
                         let bbox = prediction.bbox;
                         
                         // Se a câmera está espelhada, ajustar posição dos labels
@@ -1442,51 +1321,50 @@
                         
                         // Desenhar bounding box
                         this.detectionCtx.strokeStyle = color;
-                        this.detectionCtx.lineWidth = 2;
+                        this.detectionCtx.lineWidth = 3;
                         this.detectionCtx.strokeRect(bbox[0], bbox[1], bbox[2], bbox[3]);
                         
                         // Preparar rótulo
                         const confidence = Math.round(prediction.score * 100);
                         const frameCount = this.objectFrameCount.get(prediction.class) || 0;
-                        const label = `${translatedName} (${confidence}%)`;
+                        const label = `${translatedName} (${confidence}%) [${frameCount}/${this.frameThreshold}]`;
                         
                         // Configurar fonte
-                        this.detectionCtx.font = 'bold 14px Arial';
+                        this.detectionCtx.font = 'bold 18px Arial';
                         const textMetrics = this.detectionCtx.measureText(label);
                         const textWidth = textMetrics.width;
-                        const textHeight = 18;
+                        const textHeight = 24;
                         
                         // Fundo do texto
-                        this.detectionCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        this.detectionCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
                         this.detectionCtx.fillRect(
                             bbox[0], 
-                            bbox[1] - textHeight - 3, 
-                            textWidth + 10, 
-                            textHeight + 3
+                            bbox[1] - textHeight - 5, 
+                            textWidth + 15, 
+                            textHeight + 5
                         );
                         
                         // Texto
                         this.detectionCtx.fillStyle = color;
-                        this.detectionCtx.fillText(label, bbox[0] + 5, bbox[1] - 5);
+                        this.detectionCtx.fillText(label, bbox[0] + 8, bbox[1] - 8);
                         
-                        // Ponto central (apenas em modos de maior performance)
-                        if (this.performanceMode !== 'low-power') {
-                            const centerX = bbox[0] + bbox[2] / 2;
-                            const centerY = bbox[1] + bbox[3] / 2;
-                            
-                            this.detectionCtx.fillStyle = color;
-                            this.detectionCtx.beginPath();
-                            this.detectionCtx.arc(centerX, centerY, 4, 0, 2 * Math.PI);
-                            this.detectionCtx.fill();
-                        }
+                        // Ponto central
+                        const centerX = bbox[0] + bbox[2] / 2;
+                        const centerY = bbox[1] + bbox[3] / 2;
                         
-                        // Indicador visual para objetos próximos do threshold (apenas em modos normais)
-                        if (this.performanceMode === 'normal' && frameCount >= this.frameThreshold - 1) {
+                        this.detectionCtx.fillStyle = color;
+                        this.detectionCtx.beginPath();
+                        this.detectionCtx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
+                        this.detectionCtx.fill();
+                        
+                        // Indicador visual para objetos próximos do threshold
+                        if (frameCount >= this.frameThreshold - 1) {
                             this.detectionCtx.strokeStyle = '#00ff88';
-                            this.detectionCtx.lineWidth = 2;
-                            this.detectionCtx.strokeRect(bbox[0] - 1, bbox[1] - 1, bbox[2] + 2, bbox[3] + 2);
+                            this.detectionCtx.lineWidth = 5;
+                            this.detectionCtx.strokeRect(bbox[0] - 2, bbox[1] - 2, bbox[2] + 4, bbox[3] + 4);
                         }
-                    });
+                    }
+                });
             }
 
             updateStatistics() {
@@ -1525,7 +1403,7 @@
                 let html = '';
                 this.detectedObjects
                     .sort((a, b) => b.score - a.score)
-                    .slice(0, 5) // Limitar a 5 itens para melhor performance
+                    .slice(0, 6)
                     .forEach(obj => {
                         const confidence = Math.round(obj.score * 100);
                         const frameCount = this.objectFrameCount.get(obj.class) || 0;
@@ -1533,14 +1411,14 @@
                         
                         html += `
                             <div class="object-item ${obj.category}">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                                     <strong>${obj.translatedClass}</strong>
-                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
                                         <span style="font-weight: bold;">${confidence}%</span>
                                         ${isSpoken ? '<span style="color: #00ff88;">🔊</span>' : ''}
                                     </div>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 12px;">
                                     <span>Quadros: ${frameCount}/${this.frameThreshold}</span>
                                     <span style="color: ${frameCount >= this.frameThreshold ? '#00ff88' : '#666'};">
                                         ${frameCount >= this.frameThreshold ? '✅ Confirmado' : '⏳ Detectando'}
@@ -1562,6 +1440,7 @@
                     this.fps = Math.round(1000 / (now - this.lastFrameTime));
                     document.getElementById('fpsCounter').textContent = this.fps;
                 }
+                this.lastFrameTime = now;
             }
 
             stop() {
@@ -1572,9 +1451,6 @@
                 this.speechSynthesis.cancel();
                 this.isSpeaking = false;
                 document.getElementById('voiceIndicator').classList.remove('speaking');
-                
-                // Limpar fila de mensagens
-                this.speechQueue = [];
                 
                 if (this.video.srcObject) {
                     this.video.srcObject.getTracks().forEach(track => track.stop());
@@ -1592,7 +1468,6 @@
                 document.getElementById('flipBtn').disabled = true;
                 document.getElementById('mirrorBtn').disabled = true;
                 document.getElementById('voiceBtn').disabled = true;
-                document.getElementById('performanceBtn').disabled = true;
                 
                 document.getElementById('pauseBtn').textContent = '⏸️ PAUSAR IA';
                 document.getElementById('modelStatus').textContent = 'Sistema Parado';
@@ -1614,7 +1489,7 @@
                     if (confirm('Deseja reiniciar o sistema?')) {
                         location.reload();
                     }
-                }, 800);
+                }, 1000);
             }
         }
 
